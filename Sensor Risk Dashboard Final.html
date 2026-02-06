@@ -1,0 +1,1312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Sensor Risk Dashboard</title>
+
+  <style>
+    :root{
+      --bg: #f5f5f5;
+      --card:#ffffff;
+      --muted:#6b7280;
+      --line:#e5e7eb;
+      --th:#f9fafb;
+
+      --red:#ef4444;
+      --amber:#f59e0b;
+      --green:#10b981;
+      --blue:#3b82f6;
+      --grey:#d1d5db;
+      --btnGrey:#f3f4f6;
+      --btnText:#374151;
+
+      --shadow: 0 2px 8px rgba(0,0,0,.08);
+      --shadow-lg: 0 4px 16px rgba(0,0,0,.1);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body{
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg);
+      min-height: 100vh;
+      padding: 24px;
+      color:#111827;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    /* Top bar with glassmorphism */
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:20px;
+      padding: 24px 32px;
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      margin-bottom: 24px;
+      border: 1px solid #e5e7eb;
+    }
+
+    .title h1{
+      margin:0 0 8px 0;
+      font-size:32px;
+      font-weight:900;
+      color: #111827;
+    }
+
+    .title p{
+      margin:0;
+      color:var(--muted);
+      font-size:15px;
+      font-weight: 500;
+    }
+
+    .account{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      user-select:none;
+    }
+
+    .avatar{
+      width:48px;
+      height:48px;
+      border-radius:50%;
+      overflow:hidden;
+      flex:0 0 auto;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      background: #3b82f6;
+      display: grid;
+      place-items: center;
+      color: white;
+      font-weight: 800;
+      font-size: 18px;
+    }
+
+    .acctName{
+      font-weight:700;
+      font-size: 16px;
+    }
+
+    .iconBtn{
+      width:44px;
+      height:44px;
+      border:none;
+      border-radius:12px;
+      background:var(--card);
+      box-shadow: 0 4px 12px rgba(0,0,0,.08);
+      cursor:pointer;
+      display:grid;
+      place-items:center;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .iconBtn:hover{ 
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(0,0,0,.15);
+    }
+
+    .iconBtn:active{ transform: translateY(0); }
+
+    /* Stats Cards */
+    .statsGrid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    .statCard {
+      background: #ffffff;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      border: 1px solid #e5e7eb;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .statCard::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: var(--accent-color);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .statCard:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px rgba(0,0,0,.15);
+    }
+
+    .statCard:hover::before {
+      opacity: 1;
+    }
+
+    .statCard.active {
+      border: 2px solid currentColor;
+      box-shadow: 0 8px 24px rgba(0,0,0,.15);
+    }
+
+    .statCard.active::before {
+      opacity: 1;
+    }
+
+    .statCard.high.active { border-color: #ef4444; }
+    .statCard.medium.active { border-color: #f59e0b; }
+    .statCard.low.active { border-color: #10b981; }
+    .statCard.total.active { border-color: #3b82f6; }
+
+    .statCard.high { --accent-color: #ef4444; }
+    .statCard.medium { --accent-color: #f59e0b; }
+    .statCard.low { --accent-color: #10b981; }
+    .statCard.total { --accent-color: #3b82f6; }
+
+    .statHeader {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .statLabel {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .statIcon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      font-size: 20px;
+    }
+
+    .statCard.high .statIcon { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+    .statCard.medium .statIcon { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+    .statCard.low .statIcon { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+    .statCard.total .statIcon { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+
+    .statValue {
+      font-size: 36px;
+      font-weight: 900;
+      color: #111827;
+      margin-bottom: 4px;
+    }
+
+    .statChange {
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .statChange.positive { color: #10b981; }
+    .statChange.negative { color: #ef4444; }
+
+    /* Filters section */
+    .filtersCard {
+      background: #ffffff;
+      padding: 24px 32px;
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      margin-bottom: 24px;
+      border: 1px solid #e5e7eb;
+    }
+
+    .filtersRow{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      flex-wrap:wrap;
+    }
+
+    .leftFilters{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+
+    select{
+      height:44px;
+      padding: 0 16px;
+      border-radius:12px;
+      border:2px solid var(--line);
+      background:var(--card);
+      box-shadow: 0 2px 8px rgba(0,0,0,.05);
+      cursor:pointer;
+      color:#111827;
+      outline:none;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    select:hover {
+      border-color: #3b82f6;
+    }
+
+    select:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .riskBtns{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+
+    .riskBtn{
+      height:44px;
+      padding:0 20px;
+      border:2px solid transparent;
+      border-radius:12px;
+      cursor:pointer;
+      background: var(--btnGrey);
+      color: var(--btnText);
+      font-weight:700;
+      font-size: 14px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .riskBtn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.4), rgba(255,255,255,0));
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .riskBtn:hover::before {
+      opacity: 1;
+    }
+
+    .riskBtn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0,0,0,.12);
+    }
+
+    .riskBtn.active {
+      border-color: currentColor;
+      box-shadow: 0 8px 20px rgba(0,0,0,.2);
+    }
+
+    .riskBtn.active.high{ 
+      background: #ef4444;
+      color:#fff; 
+    }
+
+    .riskBtn.active.medium{ 
+      background: #f59e0b;
+      color:#fff; 
+    }
+
+    .riskBtn.active.low{ 
+      background: #10b981;
+      color:#fff; 
+    }
+
+    /* Calendar */
+    .calendarWrap{
+      position:relative;
+      display:flex;
+      align-items:center;
+      gap:12px;
+      z-index: 1000;
+    }
+
+    .calendarPill{
+      height:44px;
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding:0 18px;
+      border-radius:12px;
+      border:2px solid var(--line);
+      background:var(--card);
+      box-shadow: 0 2px 8px rgba(0,0,0,.05);
+      cursor:pointer;
+      user-select:none;
+      min-width: 260px;
+      justify-content:space-between;
+      transition: all 0.2s;
+    }
+
+    .calendarPill:hover {
+      border-color: #3b82f6;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+    }
+
+    .calendarLeft{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      color:#111827;
+      font-weight:700;
+      white-space:nowrap;
+      font-size: 14px;
+    }
+
+    .calendarRight{
+      color:var(--muted);
+      font-size:12px;
+      font-weight:700;
+      transition: transform 0.3s;
+    }
+
+    .calendarPill:hover .calendarRight {
+      transform: translateY(2px);
+    }
+
+    .dropdown{
+      position:absolute;
+      top:52px;
+      right:0;
+      width: 220px;
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:14px;
+      box-shadow: var(--shadow-lg);
+      padding:8px;
+      display:none;
+      z-index:9999;
+      animation: dropdownSlide 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    @keyframes dropdownSlide {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .dropdown.open{ display:block; }
+
+    .ddItem{
+      padding:12px 14px;
+      border-radius:10px;
+      cursor:pointer;
+      font-weight:600;
+      color:#111827;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+
+    .ddItem:hover{ 
+      background:#f3f4f6;
+      transform: translateX(4px);
+    }
+
+    .ddItem.active{ 
+      background: #3b82f6;
+      color:#fff;
+    }
+
+    /* Table */
+    .tableCard{
+      background: #ffffff;
+      border-radius:12px;
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      border: 1px solid #e5e7eb;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      background:transparent;
+    }
+
+    th, td{
+      padding:16px 20px;
+      border-bottom:1px solid var(--line);
+      text-align:left;
+      font-size:14px;
+    }
+
+    th{
+      background:var(--th);
+      font-weight:800;
+      cursor:pointer;
+      user-select:none;
+      white-space:nowrap;
+      text-transform: uppercase;
+      font-size: 12px;
+      letter-spacing: 0.5px;
+      color: #6b7280;
+      transition: all 0.2s;
+    }
+
+    th:hover {
+      background: #f3f4f6;
+      color: #111827;
+    }
+
+    th .sortIcon{
+      display:inline-block;
+      width:16px;
+      text-align:center;
+      margin-left:6px;
+      color:#667eea;
+      opacity:.8;
+      font-size:14px;
+    }
+
+    tbody tr {
+      transition: all 0.2s;
+    }
+
+    tbody tr:hover {
+      background: rgba(102, 126, 234, 0.05);
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    td{
+      color:#111827;
+      font-weight: 500;
+    }
+
+    .sensorName {
+      font-weight: 700;
+      color: #111827;
+    }
+
+    .locationBadge {
+      display: inline-block;
+      padding: 4px 10px;
+      background: #f3f4f6;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #6b7280;
+    }
+
+    .riskBadge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .riskBadge.HIGH {
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+    }
+
+    .riskBadge.MEDIUM {
+      background: rgba(245, 158, 11, 0.1);
+      color: #f59e0b;
+    }
+
+    .riskBadge.LOW {
+      background: rgba(16, 185, 129, 0.1);
+      color: #10b981;
+    }
+
+    .riskDot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .battery-low{ 
+      color:var(--red); 
+      font-weight:800;
+    }
+
+    .battery-mid{ 
+      color:var(--amber); 
+      font-weight:800;
+    }
+
+    .battery-good{ 
+      color:var(--green); 
+      font-weight:800;
+    }
+
+    .gapCell, .zeroCell {
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .uplinkCell {
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 13px;
+      color: #6b7280;
+    }
+
+    /* Loading state */
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: var(--muted);
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(102, 126, 234, 0.2);
+      border-top-color: #667eea;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Responsive */
+    @media (max-width: 900px){
+      .topbar {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .filtersRow {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .leftFilters, .calendarWrap {
+        width: 100%;
+      }
+
+      .calendarPill {
+        min-width: 100%;
+      }
+
+      .statsGrid {
+        grid-template-columns: 1fr;
+      }
+
+      table {
+        font-size: 12px;
+      }
+
+      th, td {
+        padding: 12px 10px;
+      }
+    }
+
+    /* Smooth scroll */
+    html {
+      scroll-behavior: smooth;
+    }
+
+    /* Search box */
+    .searchBox {
+      position: relative;
+      flex: 1;
+      max-width: 320px;
+    }
+
+    .searchInput {
+      width: 100%;
+      height: 44px;
+      padding: 0 16px 0 44px;
+      border-radius: 12px;
+      border: 2px solid var(--line);
+      background: var(--card);
+      font-size: 14px;
+      font-weight: 600;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .searchInput:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .searchIcon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      pointer-events: none;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <!-- Top bar -->
+    <div class="topbar">
+      <div class="title">
+        <h1>Sensor Risk Dashboard</h1>
+        <p>Real-time monitoring of sensor health, battery levels, and uplink status</p>
+      </div>
+
+      <div class="account">
+        <div class="avatar">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="8" r="4" fill="white"/>
+            <path d="M6 21c0-3.314 2.686-6 6-6s6 2.686 6 6" fill="white"/>
+          </svg>
+        </div>
+        <div class="acctName">Chase</div>
+
+        <button class="iconBtn" title="Reset all filters" onclick="resetAll()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M21 12a9 9 0 1 1-2.64-6.36" stroke="#667eea" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M21 3v6h-6" stroke="#667eea" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="statsGrid">
+      <div class="statCard high" onclick="toggleRiskFilter('HIGH')" style="cursor: pointer;">
+        <div class="statHeader">
+          <span class="statLabel">High Risk</span>
+          <div class="statIcon">⚠️</div>
+        </div>
+        <div class="statValue" id="statHigh">0</div>
+        <div class="statChange negative">
+          <span>●</span>
+          <span>Critical Attention Required</span>
+        </div>
+      </div>
+
+      <div class="statCard medium" onclick="toggleRiskFilter('MEDIUM')" style="cursor: pointer;">
+        <div class="statHeader">
+          <span class="statLabel">Medium Risk</span>
+          <div class="statIcon">⚡</div>
+        </div>
+        <div class="statValue" id="statMedium">0</div>
+        <div class="statChange">
+          <span>●</span>
+          <span>Monitoring Needed</span>
+        </div>
+      </div>
+
+      <div class="statCard low" onclick="toggleRiskFilter('LOW')" style="cursor: pointer;">
+        <div class="statHeader">
+          <span class="statLabel">Low Risk</span>
+          <div class="statIcon">✓</div>
+        </div>
+        <div class="statValue" id="statLow">0</div>
+        <div class="statChange positive">
+          <span>●</span>
+          <span>Potential Failure</span>
+        </div>
+      </div>
+
+      <div class="statCard total" onclick="toggleRiskFilter('ALL')" style="cursor: pointer;">
+        <div class="statHeader">
+          <span class="statLabel">Total Sensors</span>
+          <div class="statIcon">📡</div>
+        </div>
+        <div class="statValue" id="statTotal">0</div>
+        <div class="statChange">
+          <span>●</span>
+          <span>At-Risk Sensors</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filtersCard">
+      <div class="filtersRow">
+        <div class="leftFilters">
+          <div class="searchBox">
+            <input 
+              type="text" 
+              class="searchInput" 
+              id="searchInput" 
+              placeholder="Search sensors..."
+              oninput="applyFilters()"
+            />
+            <svg class="searchIcon" width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
+              <path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+
+          <select id="clientFilter" onchange="updateLocations(); applyFilters();">
+            <option value="ALL">All Clients</option>
+          </select>
+
+          <select id="locationFilter" onchange="applyFilters();">
+            <option value="ALL">All Locations</option>
+          </select>
+        </div>
+
+        <div class="calendarWrap">
+          <div class="calendarPill" id="calendarPill" onclick="toggleCalendarDropdown()">
+            <div class="calendarLeft">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <rect x="3" y="4" width="18" height="18" rx="3" stroke="currentColor" stroke-width="2"/>
+                <path d="M16 2v4M8 2v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <path d="M3 10h18" stroke="currentColor" stroke-width="2"/>
+              </svg>
+              <span id="rangeLabel">All Time</span>
+            </div>
+            <div class="calendarRight">▼</div>
+          </div>
+
+          <div class="dropdown" id="calendarDropdown">
+            <div class="ddItem" id="ddALL" onclick="setDateRange('ALL')">All Time</div>
+            <div class="ddItem" id="ddTODAY" onclick="setDateRange('TODAY')">Today</div>
+            <div class="ddItem" id="ddYESTERDAY" onclick="setDateRange('YESTERDAY')">Yesterday</div>
+            <div class="ddItem" id="dd7" onclick="setDateRange('7')">Last 7 Days</div>
+            <div class="ddItem" id="dd30" onclick="setDateRange('30')">Last 30 Days</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="tableCard">
+      <table>
+        <thead>
+          <tr>
+            <th onclick="sortTable('name')">Sensor Name <span class="sortIcon" id="s-name">↕</span></th>
+            <th onclick="sortTable('location')">Location <span class="sortIcon" id="s-location">↕</span></th>
+            <th onclick="sortTable('gap')">Gap (hrs) <span class="sortIcon" id="s-gap">↕</span></th>
+            <th onclick="sortTable('battery')">Battery (%) <span class="sortIcon" id="s-battery">↕</span></th>
+            <th onclick="sortTable('zero')">Zero Count <span class="sortIcon" id="s-zero">↕</span></th>
+            <th onclick="sortTable('uplink')">Last Uplink <span class="sortIcon" id="s-uplink">↕</span></th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <tr>
+            <td colspan="6" class="loading">
+              <div class="spinner"></div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+<script>
+/* -------------------------
+   1) Build dataset
+-------------------------- */
+
+const duoHumanSensors = [
+  "Duo Towers Level 23 Female Toilet",
+  "Duo Towers Level B3 Handicap Toilet",
+  "Duo Towers Level 23 Male Toilet",
+  "Duo Towers Level 23 Handicap Toilet",
+  "Duo Towers Level 22 Female Toilet",
+  "Duo Towers Level 22 Male Toilet",
+  "Duo Towers Level 22 Handicap Toilet",
+  "Duo Towers Level 21 Female Toilet",
+  "Duo Towers Level 21 Male Toilet",
+  "Duo Towers Level 21 Handicap Toilet",
+  "Duo Towers Level 20 Female Toilet",
+  "Duo Towers Level 20 Male Toilet",
+  "Duo Towers Level 20 Handicap Toilet",
+  "Duo Towers Level 15 Female Toilet",
+  "Duo Towers Level 15 Male Toilet",
+  "Duo Towers Level 15 Handicap Toilet",
+  "Duo Towers Level 14 Female Toilet",
+  "Duo Towers Level 14 Male Toilet",
+  "Duo Towers Level 14 Handicap Toilet",
+  "Duo Towers Level 10 Female Toilet",
+  "Duo Towers Level 10 Handicap Toilet",
+  "Duo Towers Level 10 Male Toilet",
+  "Duo Towers Level 08 Female Toilet",
+  "Duo Towers Level 08 Handicap Toilet",
+  "Duo Towers Level 08 Male Toilet",
+  "Duo Towers Level 07 Female Toilet",
+  "Duo Towers Level 07 Handicap Toilet",
+  "Duo Towers Level 07 Male Toilet",
+  "Duo Towers Level 06 Handicap Toilet"
+];
+
+const fraserSensors = [
+  "SG-FraserT-LZ-L9-M2-VS351",
+  "SG-FraserT-LZ-L9-M1-VS351",
+  "SG-FraserT-LZ-L9-M-GS302",
+  "SG-FraserT-LZ-L9-F2-VS351",
+  "SG-FraserT-LZ-L9-F1-VS351",
+  "SG-FraserT-LZ-L9-F-GS302",
+  "SG-FraserT-MZ-L19-M-GS302",
+  "SG-FraserT-MZ-L19-F2-VS351",
+  "SG-FraserT-MZ-L19-F1-VS351",
+  "SG-FraserT-MZ-L19-F-GS302",
+  "SG-FraserT-MZ-L18-M2-VS351",
+  "SG-FraserT-MZ-L18-M1-VS351",
+  "SG-FraserT-MZ-L18-M-GS302"
+];
+
+const baseSensors = [
+  { client:"BCA", name:"BCA-MeetingRoom-VS133", location:"Meeting Room" },
+  { client:"Temasek Poly", name:"SG-TP-BPC-VS135-Point1", location:"Business Park Canteen > Point 1" },
+  { client:"Temasek Poly", name:"SG-TP-BPC-VS135-Point4", location:"Business Park Canteen > Point 4" },
+  { client:"Temasek Poly", name:"SG-TP-GF-VS135-Point2-1", location:"Garden Fiesta > Point 2-1" },
+  { client:"Temasek Poly", name:"SG-TP-GF-VS135-Point3-3 (Node)", location:"Garden Fiesta > Point 3-3" }
+];
+
+function hashStr(s){
+  let h=2166136261;
+  for(let i=0;i<s.length;i++){
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h>>>0);
+}
+
+function pad2(n){ return String(n).padStart(2,'0'); }
+
+function randomFromHash(name){
+  const h = hashStr(name);
+  const gap = (h % 240);
+  const battery = 5 + (h % 96);
+  const zero = (h >>> 8) % 420;
+
+  const daysAgo = (h >>> 16) % 30;
+  const hour = (h >>> 6) % 24;
+  const min  = (h >>> 11) % 60;
+
+  const anchor = new Date("2026-01-30T15:10:00");
+  const upl = new Date(anchor.getTime() - daysAgo*24*3600*1000);
+  upl.setHours(hour);
+  upl.setMinutes(min);
+
+  let risk = "LOW";
+  if(gap >= 72 || battery < 20) risk = "HIGH";
+  else if(gap >= 24 || battery < 40 || zero >= 250) risk = "MEDIUM";
+
+  return { gap, battery, zero, uplink: upl, risk };
+}
+
+function fmtUplink(dt){
+  const y = dt.getFullYear();
+  const m = pad2(dt.getMonth()+1);
+  const d = pad2(dt.getDate());
+  const hh = pad2(dt.getHours());
+  const mm = pad2(dt.getMinutes());
+  return `${y}-${m}-${d} ${hh}:${mm}`;
+}
+
+function duoLocationFromName(name){
+  const m = name.match(/Level\s+([A-Z]?\d+)\s+(.+)$/i);
+  if(!m) return "Duo Towers";
+  return `Level ${m[1]} > ${m[2]}`;
+}
+
+function fraserLocationFromCode(code){
+  const zone = code.includes("-LZ-") ? "Low Zone" : (code.includes("-MZ-") ? "Mid Zone" : "Zone");
+  const lvlMatch = code.match(/-L(\d+)-/);
+  const lvl = lvlMatch ? lvlMatch[1] : "?";
+  const tail = code.split("-L"+lvl+"-")[1] || "";
+  const sub = tail.split("-")[0] || "";
+  return `${zone} > Level ${lvl} > ${sub}`;
+}
+
+const data = [];
+
+baseSensors.forEach(s=>{
+  const metrics = randomFromHash(s.name);
+  data.push({
+    client: s.client,
+    name: s.name,
+    location: s.location,
+    gap: metrics.gap,
+    battery: metrics.battery,
+    zero: metrics.zero,
+    uplink: metrics.uplink,
+    risk: metrics.risk
+  });
+});
+
+duoHumanSensors.forEach(n=>{
+  const metrics = randomFromHash(n);
+  data.push({
+    client: "Duo Towers",
+    name: n,
+    location: duoLocationFromName(n),
+    gap: metrics.gap,
+    battery: metrics.battery,
+    zero: metrics.zero,
+    uplink: metrics.uplink,
+    risk: metrics.risk
+  });
+});
+
+fraserSensors.forEach(code=>{
+  const metrics = randomFromHash(code);
+  data.push({
+    client: "Fraser Tower",
+    name: code,
+    location: fraserLocationFromCode(code),
+    gap: metrics.gap,
+    battery: metrics.battery,
+    zero: metrics.zero,
+    uplink: metrics.uplink,
+    risk: metrics.risk
+  });
+});
+
+/* -------------------------
+   2) State
+-------------------------- */
+let currentRisk = "ALL";
+let dateMode = "ALL";
+let sortField = null;
+let sortAsc = true;
+
+const clientFilter = document.getElementById("clientFilter");
+const locationFilter = document.getElementById("locationFilter");
+const searchInput = document.getElementById("searchInput");
+const tableBody = document.getElementById("tableBody");
+const rangeLabel = document.getElementById("rangeLabel");
+const calendarDropdown = document.getElementById("calendarDropdown");
+
+/* -------------------------
+   3) UI helpers
+-------------------------- */
+function batteryClass(v){
+  if(v < 20) return "battery-low";
+  if(v < 40) return "battery-mid";
+  return "battery-good";
+}
+
+function initClients(){
+  const clients = [...new Set(data.map(d=>d.client))].sort((a,b)=>a.localeCompare(b));
+  clients.forEach(c=>{
+    const opt = document.createElement("option");
+    opt.value = c;
+    opt.textContent = c;
+    clientFilter.appendChild(opt);
+  });
+}
+
+function updateLocations(){
+  const client = clientFilter.value;
+  locationFilter.innerHTML = '<option value="ALL">All Locations</option>';
+
+  const locs = data
+    .filter(d => client === "ALL" || d.client === client)
+    .map(d => d.location)
+    .filter((v,i,a)=>a.indexOf(v)===i)
+    .sort((a,b)=>a.localeCompare(b));
+
+  locs.forEach(loc=>{
+    const opt = document.createElement("option");
+    opt.value = loc;
+    opt.textContent = loc;
+    locationFilter.appendChild(opt);
+  });
+}
+
+function toggleRiskFilter(risk){
+  // Toggle: if clicking the same risk, turn it off
+  if(currentRisk === risk){
+    currentRisk = "ALL";
+  } else {
+    currentRisk = risk;
+  }
+
+  // Update stat card active states
+  document.querySelectorAll('.statCard').forEach(card => {
+    card.classList.remove('active');
+  });
+
+  if(currentRisk !== "ALL"){
+    const activeCard = document.querySelector(`.statCard.${currentRisk.toLowerCase()}`);
+    if(activeCard) activeCard.classList.add('active');
+  } else {
+    const totalCard = document.querySelector('.statCard.total');
+    if(totalCard) totalCard.classList.add('active');
+  }
+
+  applyFilters();
+}
+
+function setRisk(risk){
+  toggleRiskFilter(risk);
+}
+
+function clearSortIcons(){
+  ["name","location","gap","battery","zero","uplink"].forEach(k=>{
+    const el = document.getElementById("s-"+k);
+    if(el) el.textContent = "↕";
+  });
+}
+
+function sortTable(field){
+  if(sortField === field){
+    sortAsc = !sortAsc;
+  }else{
+    sortField = field;
+    sortAsc = true;
+  }
+  clearSortIcons();
+  const el = document.getElementById("s-"+field);
+  if(el) el.textContent = sortAsc ? "▲" : "▼";
+  applyFilters();
+}
+
+/* -------------------------
+   4) Calendar dropdown
+-------------------------- */
+function toggleCalendarDropdown(){
+  calendarDropdown.classList.toggle("open");
+}
+
+function closeCalendarDropdown(){
+  calendarDropdown.classList.remove("open");
+}
+
+function setActiveDd(id){
+  ["ALL","TODAY","YESTERDAY","7","30"].forEach(k=>{
+    const el = document.getElementById("dd"+k);
+    el.classList.remove("active");
+  });
+  document.getElementById("dd"+id).classList.add("active");
+}
+
+function dateRangeLabel(mode){
+  const today = new Date("2026-01-30T12:00:00");
+  const start = new Date(today);
+  const end = new Date(today);
+
+  if(mode === "ALL") return "All Time";
+  if(mode === "TODAY"){
+    return `${pad2(today.getDate())}/${pad2(today.getMonth()+1)}/${today.getFullYear()} - ${pad2(today.getDate())}/${pad2(today.getMonth()+1)}/${today.getFullYear()}`;
+  }
+  if(mode === "YESTERDAY"){
+    start.setDate(today.getDate()-1);
+    end.setDate(today.getDate()-1);
+    return `${pad2(start.getDate())}/${pad2(start.getMonth()+1)}/${start.getFullYear()} - ${pad2(end.getDate())}/${pad2(end.getMonth()+1)}/${end.getFullYear()}`;
+  }
+  if(mode === "7"){
+    start.setDate(today.getDate()-6);
+    return `${pad2(start.getDate())}/${pad2(start.getMonth()+1)}/${start.getFullYear()} - ${pad2(end.getDate())}/${pad2(end.getMonth()+1)}/${end.getFullYear()}`;
+  }
+  start.setDate(today.getDate()-29);
+  return `${pad2(start.getDate())}/${pad2(start.getMonth()+1)}/${start.getFullYear()} - ${pad2(end.getDate())}/${pad2(end.getMonth()+1)}/${end.getFullYear()}`;
+}
+
+function setDateRange(mode){
+  dateMode = mode;
+  setActiveDd(mode);
+  rangeLabel.textContent = dateRangeLabel(mode);
+  closeCalendarDropdown();
+  applyFilters();
+}
+
+function datePasses(uplinkDate){
+  if(dateMode === "ALL") return true;
+
+  const today = new Date("2026-01-30T12:00:00");
+  function dayStart(d){
+    const x = new Date(d);
+    x.setHours(0,0,0,0);
+    return x;
+  }
+  const U = dayStart(uplinkDate);
+  const T = dayStart(today);
+
+  if(dateMode === "TODAY"){
+    return U.getTime() === T.getTime();
+  }
+  if(dateMode === "YESTERDAY"){
+    const Y = new Date(T);
+    Y.setDate(Y.getDate()-1);
+    return U.getTime() === Y.getTime();
+  }
+  if(dateMode === "7"){
+    const S = new Date(T);
+    S.setDate(S.getDate()-6);
+    return U >= S && U <= T;
+  }
+  const S = new Date(T);
+  S.setDate(S.getDate()-29);
+  return U >= S && U <= T;
+}
+
+/* -------------------------
+   5) Update stats
+-------------------------- */
+function updateStats(rows){
+  const high = rows.filter(r => r.risk === "HIGH").length;
+  const medium = rows.filter(r => r.risk === "MEDIUM").length;
+  const low = rows.filter(r => r.risk === "LOW").length;
+  const total = rows.length;
+
+  document.getElementById("statHigh").textContent = high;
+  document.getElementById("statMedium").textContent = medium;
+  document.getElementById("statLow").textContent = low;
+  document.getElementById("statTotal").textContent = total;
+}
+
+/* -------------------------
+   6) Render & filtering
+-------------------------- */
+function applyFilters(){
+  const client = clientFilter.value;
+  const location = locationFilter.value;
+  const search = searchInput.value.toLowerCase().trim();
+
+  let rows = data.filter(d =>
+    (client === "ALL" || d.client === client) &&
+    (location === "ALL" || d.location === location) &&
+    (currentRisk === "ALL" || d.risk === currentRisk) &&
+    datePasses(d.uplink) &&
+    (search === "" || d.name.toLowerCase().includes(search) || d.location.toLowerCase().includes(search))
+  );
+
+  if(sortField){
+    rows.sort((a,b)=>{
+      let av = a[sortField];
+      let bv = b[sortField];
+
+      if(sortField === "uplink"){
+        av = a.uplink.getTime();
+        bv = b.uplink.getTime();
+      }
+
+      if(typeof av === "string"){
+        const cmp = av.localeCompare(bv);
+        return sortAsc ? cmp : -cmp;
+      }
+
+      if(av > bv) return sortAsc ? 1 : -1;
+      if(av < bv) return sortAsc ? -1 : 1;
+      return 0;
+    });
+  }
+
+  updateStats(rows);
+
+  tableBody.innerHTML = "";
+  rows.forEach(d=>{
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+      <td><span class="sensorName">${escapeHtml(d.name)}</span></td>
+      <td><span class="locationBadge">${escapeHtml(d.location)}</span></td>
+      <td class="gapCell">${d.gap}</td>
+      <td class="${batteryClass(d.battery)}">${d.battery}%</td>
+      <td class="zeroCell">${d.zero}</td>
+      <td class="uplinkCell">${fmtUplink(d.uplink)}</td>
+    `;
+    tableBody.appendChild(tr);
+  });
+
+  if(rows.length === 0){
+    tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--muted);">No sensors found matching your filters</td></tr>';
+  }
+}
+
+function escapeHtml(str){
+  return String(str)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
+/* -------------------------
+   7) Reset all
+-------------------------- */
+function resetAll(){
+  clientFilter.value = "ALL";
+  updateLocations();
+  locationFilter.value = "ALL";
+  searchInput.value = "";
+
+  currentRisk = "ALL";
+  document.querySelectorAll('.statCard').forEach(card => {
+    card.classList.remove('active');
+  });
+  const totalCard = document.querySelector('.statCard.total');
+  if(totalCard) totalCard.classList.add('active');
+
+  dateMode = "ALL";
+  setActiveDd("ALL");
+  rangeLabel.textContent = "All Time";
+  closeCalendarDropdown();
+
+  sortField = null;
+  sortAsc = true;
+  clearSortIcons();
+
+  applyFilters();
+}
+
+/* -------------------------
+   8) Init
+-------------------------- */
+initClients();
+updateLocations();
+setDateRange("30");
+
+// Set Total Sensors card as active by default
+const totalCard = document.querySelector('.statCard.total');
+if(totalCard) totalCard.classList.add('active');
+
+document.addEventListener("click", (e)=>{
+  const wrap = document.querySelector(".calendarWrap");
+  if(!wrap.contains(e.target)){
+    closeCalendarDropdown();
+  }
+});
+
+// Initial render with animation
+setTimeout(() => {
+  applyFilters();
+}, 100);
+</script>
+</body>
+</html>
